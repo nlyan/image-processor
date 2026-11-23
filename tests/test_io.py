@@ -42,6 +42,18 @@ def test_save_image_pdf(tmp_path):
     assert os.path.getsize(str(path)) > 0
 
 
+def test_save_rgba_as_jpeg(tmp_path):
+    # RGBA saved as JPEG (no alpha) should flatten onto white, not fail.
+    image = np.zeros((10, 10, 4), dtype=np.uint8)
+    image[..., 0] = 200
+    image[..., 3] = 255
+    path = tmp_path / "rgba.jpg"
+    out_path = save_image(str(path), image)
+    assert out_path.endswith(".jpg")
+    loaded = load_image(out_path)
+    assert loaded.shape == (10, 10, 3)
+
+
 def test_unicode_path_roundtrip(tmp_path):
     # Non-ASCII (Chinese) paths must work on Windows.
     chinese_dir = tmp_path / "中文目录"

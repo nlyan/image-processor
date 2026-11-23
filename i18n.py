@@ -51,6 +51,7 @@ STRINGS = {
         "cancel": "Cancel",
         "run_again": "Run Again",
         "please_segment": "Please segment the image first.",
+        "tolerance": "Tolerance",
     },
     "zh": {
         "file": "文件(&F)",
@@ -97,6 +98,7 @@ STRINGS = {
         "cancel": "取消",
         "run_again": "重新分割",
         "please_segment": "请先进行分割。",
+        "tolerance": "容差",
     },
 }
 

@@ -2,7 +2,7 @@
 import os
 
 import cv2
-from PySide6.QtCore import Qt, QThreadPool, QTimer
+from PySide6.QtCore import Qt, QStandardPaths, QThreadPool, QTimer
 from PySide6.QtGui import QAction, QActionGroup, QKeySequence, QPixmap
 from PySide6.QtWidgets import (
     QComboBox,
@@ -283,18 +283,27 @@ class MainWindow(QMainWindow):
         self._update_history_actions()
         self._update_adjust_enabled()
 
+    def _default_dir(self) -> str:
+        return self._path or QStandardPaths.writableLocation(
+            QStandardPaths.StandardLocation.PicturesLocation
+        )
+
     def save_as(self) -> None:
         if self._image is None:
             return
         path, _ = QFileDialog.getSaveFileName(
-            self, "Save Image", self._path or "", IMAGE_FILTER
+            self, "Save Image", self._default_dir(), IMAGE_FILTER
         )
         if not path:
             return
         try:
-            save_image(path, self._image)
+            path = save_image(path, self._image)
         except Exception as exc:  # noqa: BLE001 - surface any save failure
-            QMessageBox.critical(self, "Error", f"Failed to save image:\n{exc}")
+            QMessageBox.critical(
+                self, "Error",
+                f"Failed to save image:\n{exc}\n\n"
+                "Tip: choose a writable folder (e.g. Desktop or Documents).",
+            )
             return
         self._path = path
         self.setWindowTitle(f"Image Processor - {os.path.basename(path)}")
@@ -303,14 +312,18 @@ class MainWindow(QMainWindow):
         if self._image is None:
             return
         path, _ = QFileDialog.getSaveFileName(
-            self, "Save as PDF", self._path or "", PDF_FILTER
+            self, "Save as PDF", self._default_dir(), PDF_FILTER
         )
         if not path:
             return
         try:
             save_image_pdf(path, self._image)
         except Exception as exc:  # noqa: BLE001 - surface any save failure
-            QMessageBox.critical(self, "Error", f"Failed to save PDF:\n{exc}")
+            QMessageBox.critical(
+                self, "Error",
+                f"Failed to save PDF:\n{exc}\n\n"
+                "Tip: choose a writable folder (e.g. Desktop or Documents).",
+            )
             return
 
     def scan_document(self) -> None:

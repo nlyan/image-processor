@@ -11,6 +11,7 @@ from PySide6.QtWidgets import (
     QMessageBox,
     QPushButton,
     QRadioButton,
+    QSlider,
     QVBoxLayout,
     QWidget,
 )
@@ -149,6 +150,7 @@ class BackgroundDialog(QDialog):
         self._result = None
         self._keep = {}
         self._num = 0
+        self._last_point = None
         self._display_scale = 1.0
         self.setWindowTitle(_tr("remove_bg"))
         self.resize(1100, 720)
@@ -169,6 +171,13 @@ class BackgroundDialog(QDialog):
 
         self._hint_label = QLabel(_tr("grabcut_hint"))
         self._hint_label.setWordWrap(True)
+
+        self._tol_label = QLabel(f"{_tr('tolerance')}: 40")
+        self._tol_slider = QSlider(Qt.Orientation.Horizontal)
+        self._tol_slider.setRange(5, 100)
+        self._tol_slider.setValue(40)
+        self._tol_slider.valueChanged.connect(self._on_tolerance_changed)
+        self._tol_slider.setEnabled(False)
 
         self._white_radio = QRadioButton(_tr("bg_white"))
         self._transparent_radio = QRadioButton(_tr("bg_transparent"))
@@ -198,6 +207,8 @@ class BackgroundDialog(QDialog):
         controls.addWidget(self._threshold_radio)
         controls.addSpacing(8)
         controls.addWidget(self._hint_label)
+        controls.addWidget(self._tol_label)
+        controls.addWidget(self._tol_slider)
         controls.addSpacing(8)
         controls.addWidget(QLabel(_tr("bg_output")))
         controls.addWidget(self._white_radio)
@@ -228,9 +239,12 @@ class BackgroundDialog(QDialog):
         if self._grabcut_radio.isChecked():
             self._canvas.set_mode(BackgroundCanvas.MODE_GRABCUT)
             self._hint_label.setText(_tr("grabcut_hint"))
+            self._tol_slider.setEnabled(False)
         else:
             self._canvas.set_mode(BackgroundCanvas.MODE_THRESHOLD)
             self._hint_label.setText(_tr("threshold_hint"))
+            self._tol_slider.setEnabled(True)
+        self._last_point = None
         self._fg_mask = None
         self._labels = None
         self._keep = {}
@@ -247,8 +261,16 @@ class BackgroundDialog(QDialog):
 
     def _on_point(self, x, y) -> None:
         scale = self._display_scale
-        mask = threshold_segment(self._image, (int(x / scale), int(y / scale)))
+        fx, fy = int(x / scale), int(y / scale)
+        self._last_point = (fx, fy)
+        mask = threshold_segment(self._image, (fx, fy), self._tol_slider.value())
         self._finish_segmentation(mask)
+
+    def _on_tolerance_changed(self, value) -> None:
+        self._tol_label.setText(f"{_tr('tolerance')}: {value}")
+        if self._threshold_radio.isChecked() and self._last_point is not None:
+            mask = threshold_segment(self._image, self._last_point, value)
+            self._finish_segmentation(mask)
 
     def _finish_segmentation(self, mask) -> None:
         self._fg_mask = mask
